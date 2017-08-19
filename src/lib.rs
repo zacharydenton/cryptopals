@@ -25,6 +25,11 @@ pub fn xor(vec1: Vec<u8>, vec2: Vec<u8>) -> Vec<u8> {
     return result;
 }
 
+pub fn repeating_xor(bytes: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+    let repeating_key: Vec<u8> = key.iter().cloned().cycle().take(bytes.len()).collect::<Vec<_>>();
+    return xor(bytes, repeating_key);
+}
+
 pub fn btoa(bytes: Vec<u8>) -> Vec<u8> {
     let mut base64: Vec<u8> = Vec::new();
     for i in 0..(bytes.len() * 8 / 6) {

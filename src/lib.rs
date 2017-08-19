@@ -48,6 +48,44 @@ pub fn btoa(bytes: Vec<u8>) -> Vec<u8> {
     return base64;
 }
 
+pub fn english_score(bytes: Vec<u8>) -> f32 {
+    let mut score = 0.0;
+    for byte in bytes {
+        score += match byte as char {
+            ' '       => 15.0,
+            'e' | 'E' => 12.7,
+            't' | 'T' => 9.0,
+            'a' | 'A' => 8.2,
+            'o' | 'O' => 7.5,
+            'i' | 'I' => 7.0,
+            'n' | 'N' => 6.7,
+            's' | 'S' => 6.3,
+            'h' | 'H' => 6.0,
+            'r' | 'R' => 6.0,
+            'd' | 'D' => 4.2,
+            'l' | 'L' => 4.0,
+            '.'       => 3.0,
+            'u' | 'U' => 2.7,
+            'c' | 'C' => 2.7,
+            'm' | 'M' => 2.4,
+            'w' | 'W' => 2.4,
+            'f' | 'F' => 2.2,
+            'g' | 'G' => 2.0,
+            'y' | 'Y' => 2.0,
+            'p' | 'P' => 1.9,
+            'b' | 'B' => 1.5,
+            'v' | 'V' => 1.0,
+            'k' | 'K' => 0.8,
+            'j' | 'J' => 0.2,
+            'x' | 'X' => 0.2,
+            'q' | 'Q' => 0.1,
+            'z' | 'Z' => 0.1,
+            _ => -15.0
+        }
+    }
+    return score;
+}
+
 fn h2b(h: u8) -> u8 {
     return match h as char {
         '0'...'9' => h - ('0' as u8),

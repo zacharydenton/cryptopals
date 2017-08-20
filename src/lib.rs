@@ -30,6 +30,15 @@ pub fn repeating_xor(bytes: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
     return xor(bytes, repeating_key);
 }
 
+pub fn hamming_distance(vec1: Vec<u8>, vec2: Vec<u8>) -> u32 {
+    let mut distance = 0;
+    let difference = xor(vec1, vec2);
+    for byte in difference {
+        distance += byte.count_ones();
+    }
+    return distance;
+}
+
 pub fn btoa(bytes: Vec<u8>) -> Vec<u8> {
     let mut base64: Vec<u8> = Vec::new();
     for i in 0..(bytes.len() * 8 / 6) {
@@ -141,5 +150,12 @@ mod tests {
         let cipher = "ICE".as_bytes().to_vec();
         let encrypted = repeating_xor(input, cipher);
         assert_eq!(btoh(encrypted), "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f".as_bytes().to_vec());
+    }
+
+    #[test]
+    fn hamming_distance_between_strings() {
+        let str1 = "this is a test".as_bytes().to_vec();
+        let str2 = "wokka wokka!!!".as_bytes().to_vec();
+        assert_eq!(hamming_distance(str1, str2), 37);
     }
 }

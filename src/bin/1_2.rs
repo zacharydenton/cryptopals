@@ -1,7 +1,6 @@
 extern crate cryptopals;
 
-use std::io::{self, Read, Write};
-use std::env::args;
+use std::io::{self, Write};
 
 fn main() {
     let mut args = std::env::args();

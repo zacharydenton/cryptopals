@@ -107,3 +107,39 @@ fn b2h(b: u8) -> u8 {
         _ => panic!("{} is out of hexadecimal range.", b)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hex_to_base64() {
+        let hex = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d".as_bytes().to_vec();
+        let bytes = htob(hex);
+        let base64 = btoa(bytes);
+        assert_eq!(base64, "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t".as_bytes().to_vec());
+    }
+
+    #[test]
+    fn fixed_xor_hex_output() {
+        let input = htob("1c0111001f010100061a024b53535009181c".as_bytes().to_vec());
+        let code = htob("686974207468652062756c6c277320657965".as_bytes().to_vec());
+        let result = xor(input, code);
+        assert_eq!(btoh(result), "746865206b696420646f6e277420706c6179".as_bytes().to_vec());
+    }
+
+    #[test]
+    fn score_english_higher_than_noise() {
+        let english = "It is a truth universally acknowledged...".as_bytes().to_vec();
+        let noise = "asdf0(JD)F(ajsdfasd0fjsd asdf ;lj23r ASDFoi".as_bytes().to_vec();
+        assert_eq!(english_score(english) > english_score(noise), true);
+    }
+
+    #[test]
+    fn repeating_key_xor_cipher() {
+        let input = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal".as_bytes().to_vec();
+        let cipher = "ICE".as_bytes().to_vec();
+        let encrypted = repeating_xor(input, cipher);
+        assert_eq!(btoh(encrypted), "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f".as_bytes().to_vec());
+    }
+}

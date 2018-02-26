@@ -7,8 +7,8 @@ fn main() {
     io::stdin().read_to_end(&mut input)
         .expect("Failed to read input.");
 
-    let bytes = cryptopals::htob(input);
-    let base64 = cryptopals::btoa(bytes);
+    let bytes = cryptopals::htob(&input);
+    let base64 = cryptopals::btoa(&bytes);
 
     io::stdout().write(&base64)
         .expect("Failed to write output.");

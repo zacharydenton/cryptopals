@@ -50,19 +50,59 @@ pub fn hamming_distance(vec1: &[u8], vec2: &[u8]) -> u32 {
     distance
 }
 
+/// Decodes a string of data which has been encoded using base-64 encoding.
 pub fn atob(base64: &[u8]) -> Vec<u8> {
-    let mut bytes: Vec<u8> = vec![];
-    for group in base64.chunks(4) {
-        bytes.push(((a2b(group[0]) & 0b00111111) << 2) + ((a2b(group[1]) & 0b00110000) >> 4));
-        bytes.push(((a2b(group[1]) & 0b00001111) << 4) + ((a2b(group[2]) & 0b00111100) >> 2));
-        bytes.push(((a2b(group[2]) & 0b00000011) << 6) + ((a2b(group[3]) & 0b00111111) >> 0));
+    if base64.len() % 4 != 0 {
+        panic!("Invalid base-64 string (length not a multiple of 4).");
     }
+
+    let mut bytes: Vec<u8> = vec![];
+    let mut buffer: u32 = 0;
+    let mut index = 0;
+
+    for &c in base64 {
+        if c == ('=' as u8) {
+            // Padding (should only appear at the end).
+            break;
+        } else if c == ('\n' as u8) {
+            // Ignore newlines.
+            continue;
+        } else {
+            buffer = (buffer << 6) | (a2b(c) as u32);
+            index = index + 1;
+            if index == 4 {
+                bytes.push(((buffer >> 16) & 0xFF) as u8);
+                bytes.push(((buffer >> 8) & 0xFF) as u8);
+                bytes.push((buffer & 0xFF) as u8);
+                buffer = 0;
+                index = 0;
+            }
+        }
+    }
+
+    // Process padding, if any.
+    if index == 3 {
+        // 2 padding chars.
+        bytes.push(((buffer >> 10) & 0xFF) as u8);
+        bytes.push(((buffer >> 2) & 0xFF) as u8);
+    } else if index == 2 {
+        // 1 padding char.
+        bytes.push(((buffer >> 4) & 0xFF) as u8);
+    }
+
     bytes
 }
 
+/// Creates a base-64 encoded ASCII string from a binary string.
 pub fn btoa(bytes: &[u8]) -> Vec<u8> {
     let mut base64: Vec<u8> = vec![];
+
     for i in 0..(bytes.len() * 8 / 6) {
+        if i > 0 && i % 76 == 0 {
+            // Wrap to 76 chars per line.
+            base64.push('\n' as u8);
+        }
+
         let mut value: u8 = 0;
         for j in 0..6 {
             let byte_index = (i * 6 + j) / 8;
@@ -73,6 +113,7 @@ pub fn btoa(bytes: &[u8]) -> Vec<u8> {
         }
         base64.push(b2a(value));
     }
+
     base64
 }
 
@@ -208,10 +249,28 @@ mod tests {
     }
 
     #[test]
+    fn base64_encode() {
+        let input = b"Governments are instituted among Men, deriving their just powers from the consent of the governed,--That whenever any Form of Government becomes destructive of these ends, it is the Right of the People to alter or to abolish it, and to institute new Government, laying its foundation on such principles and organizing its powers in such form, as to them shall seem most likely to effect their Safety and Happiness.";
+        let encoded = btoa(input);
+        assert_eq!(encoded.as_slice(), b"R292ZXJubWVudHMgYXJlIGluc3RpdHV0ZWQgYW1vbmcgTWVuLCBkZXJpdmluZyB0aGVpciBqdXN0
+IHBvd2VycyBmcm9tIHRoZSBjb25zZW50IG9mIHRoZSBnb3Zlcm5lZCwtLVRoYXQgd2hlbmV2ZXIg
+YW55IEZvcm0gb2YgR292ZXJubWVudCBiZWNvbWVzIGRlc3RydWN0aXZlIG9mIHRoZXNlIGVuZHMs
+IGl0IGlzIHRoZSBSaWdodCBvZiB0aGUgUGVvcGxlIHRvIGFsdGVyIG9yIHRvIGFib2xpc2ggaXQs
+IGFuZCB0byBpbnN0aXR1dGUgbmV3IEdvdmVybm1lbnQsIGxheWluZyBpdHMgZm91bmRhdGlvbiBv
+biBzdWNoIHByaW5jaXBsZXMgYW5kIG9yZ2FuaXppbmcgaXRzIHBvd2VycyBpbiBzdWNoIGZvcm0s
+IGFzIHRvIHRoZW0gc2hhbGwgc2VlbSBtb3N0IGxpa2VseSB0byBlZmZlY3QgdGhlaXIgU2FmZXR5
+IGFuZCBIYXBwaW5lc3Mu".as_ref());
+    }
+
+    #[test]
     fn base64_decode() {
-        let base64 = b"QUJD";
+        let base64 = b"TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBvbmx5IGJ5IGhpcyByZWFzb24sIGJ1dCBieSB0aGlz
+IHNpbmd1bGFyIHBhc3Npb24gZnJvbSBvdGhlciBhbmltYWxzLCB3aGljaCBpcyBhIGx1c3Qgb2Yg
+dGhlIG1pbmQsIHRoYXQgYnkgYSBwZXJzZXZlcmFuY2Ugb2YgZGVsaWdodCBpbiB0aGUgY29udGlu
+dWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24gb2Yga25vd2xlZGdlLCBleGNlZWRzIHRo
+ZSBzaG9ydCB2ZWhlbWVuY2Ugb2YgYW55IGNhcm5hbCBwbGVhc3VyZS4=";
         let decoded = atob(base64);
-        assert_eq!(decoded, vec![65, 66, 67]);
+        assert_eq!(String::from_utf8(decoded).unwrap(), "Man is distinguished, not only by his reason, but by this singular passion from other animals, which is a lust of the mind, that by a perseverance of delight in the continued and indefatigable generation of knowledge, exceeds the short vehemence of any carnal pleasure.");
     }
 
     #[test]

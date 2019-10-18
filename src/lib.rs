@@ -50,6 +50,16 @@ pub fn hamming_distance(vec1: &[u8], vec2: &[u8]) -> u32 {
     distance
 }
 
+pub fn atob(base64: &[u8]) -> Vec<u8> {
+    let mut bytes: Vec<u8> = vec![];
+    for group in base64.chunks(4) {
+        bytes.push(((a2b(group[0]) & 0b00111111) << 2) + ((a2b(group[1]) & 0b00110000) >> 4));
+        bytes.push(((a2b(group[1]) & 0b00001111) << 4) + ((a2b(group[2]) & 0b00111100) >> 2));
+        bytes.push(((a2b(group[2]) & 0b00000011) << 6) + ((a2b(group[3]) & 0b00111111) >> 0));
+    }
+    bytes
+}
+
 pub fn btoa(bytes: &[u8]) -> Vec<u8> {
     let mut base64: Vec<u8> = vec![];
     for i in 0..(bytes.len() * 8 / 6) {
@@ -61,16 +71,31 @@ pub fn btoa(bytes: &[u8]) -> Vec<u8> {
             let bit = (bytes[byte_index] >> shift) & 1;
             value |= bit << (5 - j);
         }
-        base64.push(match value {
-            0...25 => ('A' as u8) + value,
-            26...51 => ('a' as u8) + (value - 26),
-            52...61 => ('0' as u8) + (value - 52),
-            62 => ('+' as u8),
-            63 => ('/' as u8),
-            _ => panic!("{} is out of base64 range.", value),
-        });
+        base64.push(b2a(value));
     }
     base64
+}
+
+fn a2b(a: u8) -> u8 {
+    match a as char {
+        'A'...'Z' => a - ('A' as u8),
+        'a'...'z' => a - ('a' as u8) + 26,
+        '0'...'9' => a - ('0' as u8) + 52,
+        '+' => 62,
+        '/' => 63,
+        _ => panic!("{} is out of base64 range.", a),
+    }
+}
+
+fn b2a(b: u8) -> u8 {
+    match b {
+        0...25 => ('A' as u8) + b,
+        26...51 => ('a' as u8) + (b - 26),
+        52...61 => ('0' as u8) + (b - 52),
+        62 => ('+' as u8),
+        63 => ('/' as u8),
+        _ => panic!("{} is out of base64 range.", b),
+    }
 }
 
 pub fn english_score(bytes: &[u8]) -> u32 {
@@ -180,6 +205,13 @@ mod tests {
         assert_eq!(
             btoh(&encrypted).as_slice(),
             b"0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f".as_ref());
+    }
+
+    #[test]
+    fn base64_decode() {
+        let base64 = b"QUJD";
+        let decoded = atob(base64);
+        assert_eq!(decoded, vec![65, 66, 67]);
     }
 
     #[test]

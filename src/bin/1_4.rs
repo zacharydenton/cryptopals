@@ -4,7 +4,7 @@ use std::io::BufRead;
 
 fn main() {
     let stdin = std::io::stdin();
-    let mut max_score = 0;
+    let mut max_score = 0.0;
     let mut max_decrypted: Vec<u8> = vec![0; 0];
     for line in stdin.lock().lines() {
         let string = line.expect("Failed to read input.");

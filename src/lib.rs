@@ -31,14 +31,19 @@ pub fn repeating_xor(bytes: &[u8], key: &[u8]) -> Vec<u8> {
 
 pub fn solve_single_byte_xor(bytes: &[u8]) -> u8 {
     let mut decrypted: Vec<u8> = vec![0; bytes.len()];
-    ((std::u8::MIN)..(std::u8::MAX))
-        .max_by_key(|key| {
+    let keys_by_score: Vec<(f32, u8)> = ((std::u8::MIN)..(std::u8::MAX))
+        .map(|key| {
             for i in 0..bytes.len() {
                 decrypted[i] = bytes[i] ^ key;
             }
-            english_score(&decrypted)
+            (english_score(&decrypted), key)
         })
-        .unwrap()
+        .collect();
+    let &(_, key) = keys_by_score
+        .iter()
+        .max_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap())
+        .unwrap();
+    key
 }
 
 pub fn hamming_distance(vec1: &[u8], vec2: &[u8]) -> u32 {
@@ -139,40 +144,40 @@ fn b2a(b: u8) -> u8 {
     }
 }
 
-pub fn english_score(bytes: &[u8]) -> u32 {
-    let mut score: u32 = 0;
+pub fn english_score(bytes: &[u8]) -> f32 {
+    let mut score: f32 = 0.0;
     for byte in bytes {
-        score = score.saturating_add(match *byte as char {
-            ' ' => 150,
-            'e' | 'E' => 127,
-            't' | 'T' => 90,
-            'a' | 'A' => 82,
-            'o' | 'O' => 75,
-            'i' | 'I' => 70,
-            'n' | 'N' => 67,
-            's' | 'S' => 63,
-            'h' | 'H' => 60,
-            'r' | 'R' => 60,
-            'd' | 'D' => 42,
-            'l' | 'L' => 40,
-            '.' => 30,
-            'u' | 'U' => 27,
-            'c' | 'C' => 27,
-            'm' | 'M' => 24,
-            'w' | 'W' => 24,
-            'f' | 'F' => 22,
-            'g' | 'G' => 20,
-            'y' | 'Y' => 20,
-            'p' | 'P' => 19,
-            'b' | 'B' => 15,
-            'v' | 'V' => 10,
-            'k' | 'K' => 8,
-            'j' | 'J' => 2,
-            'x' | 'X' => 2,
-            'q' | 'Q' => 1,
-            'z' | 'Z' => 1,
-            _ => 0,
-        });
+        score += match *byte as char {
+            ' ' => 15.0,
+            'e' | 'E' => 12.7,
+            't' | 'T' => 9.0,
+            'a' | 'A' => 8.2,
+            'o' | 'O' => 7.5,
+            'i' | 'I' => 7.0,
+            'n' | 'N' => 6.7,
+            's' | 'S' => 6.3,
+            'h' | 'H' => 6.0,
+            'r' | 'R' => 6.0,
+            'd' | 'D' => 4.2,
+            'l' | 'L' => 4.0,
+            '.' => 3.0,
+            'u' | 'U' => 2.7,
+            'c' | 'C' => 2.7,
+            'm' | 'M' => 2.4,
+            'w' | 'W' => 2.4,
+            'f' | 'F' => 2.2,
+            'g' | 'G' => 2.0,
+            'y' | 'Y' => 2.0,
+            'p' | 'P' => 1.9,
+            'b' | 'B' => 1.5,
+            'v' | 'V' => 1.0,
+            'k' | 'K' => 0.8,
+            'j' | 'J' => 0.2,
+            'x' | 'X' => 0.2,
+            'q' | 'Q' => 0.1,
+            'z' | 'Z' => 0.1,
+            _ => -15.0,
+        };
     }
     return score;
 }
@@ -252,14 +257,18 @@ mod tests {
     fn base64_encode() {
         let input = b"Governments are instituted among Men, deriving their just powers from the consent of the governed,--That whenever any Form of Government becomes destructive of these ends, it is the Right of the People to alter or to abolish it, and to institute new Government, laying its foundation on such principles and organizing its powers in such form, as to them shall seem most likely to effect their Safety and Happiness.";
         let encoded = btoa(input);
-        assert_eq!(encoded.as_slice(), b"R292ZXJubWVudHMgYXJlIGluc3RpdHV0ZWQgYW1vbmcgTWVuLCBkZXJpdmluZyB0aGVpciBqdXN0
+        assert_eq!(
+            encoded.as_slice(),
+            b"R292ZXJubWVudHMgYXJlIGluc3RpdHV0ZWQgYW1vbmcgTWVuLCBkZXJpdmluZyB0aGVpciBqdXN0
 IHBvd2VycyBmcm9tIHRoZSBjb25zZW50IG9mIHRoZSBnb3Zlcm5lZCwtLVRoYXQgd2hlbmV2ZXIg
 YW55IEZvcm0gb2YgR292ZXJubWVudCBiZWNvbWVzIGRlc3RydWN0aXZlIG9mIHRoZXNlIGVuZHMs
 IGl0IGlzIHRoZSBSaWdodCBvZiB0aGUgUGVvcGxlIHRvIGFsdGVyIG9yIHRvIGFib2xpc2ggaXQs
 IGFuZCB0byBpbnN0aXR1dGUgbmV3IEdvdmVybm1lbnQsIGxheWluZyBpdHMgZm91bmRhdGlvbiBv
 biBzdWNoIHByaW5jaXBsZXMgYW5kIG9yZ2FuaXppbmcgaXRzIHBvd2VycyBpbiBzdWNoIGZvcm0s
 IGFzIHRvIHRoZW0gc2hhbGwgc2VlbSBtb3N0IGxpa2VseSB0byBlZmZlY3QgdGhlaXIgU2FmZXR5
-IGFuZCBIYXBwaW5lc3Mu".as_ref());
+IGFuZCBIYXBwaW5lc3Mu"
+                .as_ref()
+        );
     }
 
     #[test]
